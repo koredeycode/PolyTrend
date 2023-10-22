@@ -1,0 +1,47 @@
+{
+	"name": "directus-extension-polygon-api",
+	"version": "1.0.0",
+	"type": "module",
+	"dependencies": {
+		"apexcharts": "^3.43.0",
+		"axios": "^1.5.1",
+		"vue3-apexcharts": "^1.4.4"
+	},
+	"directus:extension": {
+		"host": "^10.1.11",
+		"type": "bundle",
+		"path": {
+			"app": "dist/app.js",
+			"api": "dist/api.js"
+		},
+		"entries": [
+			{
+				"type": "endpoint",
+				"name": "polygon-endpoint",
+				"source": "src/polygon-endpoint/index.js"
+			},
+			{
+				"type": "panel",
+				"name": "polygon-panel",
+				"source": "src/polygon-panel/index.js"
+			}
+		]
+	},
+	"description": "Please enter a description for your extension",
+	"icon": "extension",
+	"keywords": [
+		"directus",
+		"directus-extension",
+		"directus-custom-bundle"
+	],
+	"scripts": {
+		"build": "directus-extension build",
+		"dev": "directus-extension build -w --no-minify",
+		"link": "directus-extension link",
+		"add": "directus-extension add"
+	},
+	"devDependencies": {
+		"@directus/extensions-sdk": "10.1.11",
+		"vue": "^3.3.4"
+	}
+}
