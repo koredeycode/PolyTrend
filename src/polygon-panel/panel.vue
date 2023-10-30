@@ -1,23 +1,30 @@
 <template>
   <div class="chartcontainer">
-    <div class="btndiv">
-      <button @click="toggleChartType">Switch from {{ chartType }}</button>
+    <div v-if="isLoading" class="is-loading">Loading ...</div>
+    <div v-else-if="errorMessage" class="error">{{ errorMessage }}</div>
+    <div v-else class="chartdiv">
+      <div class="btndiv">
+        <div>
+          <h3>{{ this.ticker }}</h3>
+          <h4>{{ `${this.from} to ${this.to}` }}</h4>
+        </div>
+        <button @click="toggleChartType">Switch from {{ chartType }}</button>
+      </div>
+      <apexchart
+        v-if="chartType === 'candlestick'"
+        type="candlestick"
+        class="chart"
+        :options="options"
+        :series="series"
+      />
+      <apexchart
+        v-else-if="chartType === 'area'"
+        type="area"
+        class="chart"
+        :options="areaOptions"
+        :series="areaSeries"
+      />
     </div>
-
-    <apexchart
-      v-if="chartType === 'candlestick'"
-      type="candlestick"
-      class="chart"
-      :options="options"
-      :series="series"
-    />
-    <apexchart
-      v-else-if="chartType === 'line'"
-      type="line"
-      class="chart"
-      :options="options"
-      :series="lineSeries"
-    />
   </div>
 </template>
 
@@ -90,10 +97,9 @@ export default {
           },
         },
         title: {
-          text: this.ticker,
+          text: `Interval: ${this.multiplier} ${this.timespan}(s)`,
           align: 'left',
         },
-
         xaxis: {
           type: 'datetime',
         },
@@ -103,16 +109,57 @@ export default {
           },
         },
       },
+      areaOptions: {
+        chart: {
+          id: 'area-datetime',
+          type: 'area',
+          zoom: {
+            autoScaleYaxis: true,
+          },
+        },
+        title: {
+          text: `Interval: ${this.multiplier} ${this.timespan}(s)`,
+          align: 'left',
+        },
+        dataLabels: {
+          enabled: false,
+        },
+        markers: {
+          size: 0,
+          style: 'hollow',
+        },
+        xaxis: {
+          type: 'datetime',
+        },
+        tooltip: {
+          x: {
+            format: 'dd MMM yyyy',
+          },
+        },
+        fill: {
+          type: 'gradient',
+          gradient: {
+            shadeIntensity: 1,
+            opacityFrom: 0.7,
+            opacityTo: 0.9,
+            stops: [0, 100],
+          },
+        },
+      },
     };
   },
   setup(props) {
-    console.log(props);
+    console.log('Component props:', props);
     const api = useApi();
     const series = ref([{ data: [] }]);
-    const lineSeries = ref([{ data: [] }]);
+    const areaSeries = ref([{ data: [] }]);
     const chartType = ref('candlestick');
+    const isLoading = ref(true);
+    const errorMessage = ref();
 
     async function fetchData() {
+      console.log('Fetching data with props:', props);
+      isLoading.value = true;
       try {
         const { data } = await api.post('/polygon-endpoint', {
           type: props.type,
@@ -130,75 +177,140 @@ export default {
             y: [item.o, item.h, item.l, item.c],
           };
         });
-        lineSeries.value[0].data = data.results.map((item) => {
+        areaSeries.value[0].data = data.results.map((item) => {
           return {
             x: new Date(item.t),
-            y: item.c, // Use closing price for line chart
+            y: item.c, // Use closing price for area chart
           };
         });
       } catch (error) {
         console.log(error);
-        alert(error.response.data.message);
+        alert(error.response.data?.message);
+        errorMessage.value =
+          error.response.data?.message || 'Internal Server Error';
+      } finally {
+        isLoading.value = false;
       }
     }
     onMounted(fetchData);
 
-    // Watch for prop changes and refetch data when props change
     watch(
-      [
-        () => props.ticker,
-        () => props.multiplier,
-        () => props.timespan,
-        () => props.from,
-        () => props.to,
+      () => [
+        props.ticker,
+        props.multiplier,
+        props.timespan,
+        props.from,
+        props.to,
       ],
-      fetchData,
+      (newValues, oldValues) => {
+        console.log('Props changed:', newValues, oldValues);
+        fetchData(); // Try fetching data whenever props change
+      },
     );
+
     function toggleChartType() {
-      // Toggle between 'candlestick' and 'line' chart types
+      // Toggle between 'candlestick' and 'area' chart types
       chartType.value =
-        chartType.value === 'candlestick' ? 'line' : 'candlestick';
+        chartType.value === 'candlestick' ? 'area' : 'candlestick';
     }
 
-    return { series, lineSeries, toggleChartType, chartType };
+    return {
+      series,
+      areaSeries,
+      toggleChartType,
+      chartType,
+      isLoading,
+      errorMessage,
+    };
   },
 };
 </script>
 
 <style scoped>
 .chartcontainer {
-  padding: 0px;
+  padding: 3px;
   height: 100%;
+  width: 100%;
+
+  overflow: scroll;
+  position: relative;
+}
+
+.chartdiv {
   width: 100%;
 
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-
-  overflow: scroll;
+  gap: 1rem;
 }
 
 .btndiv {
+  margin: 1rem;
   width: 100%;
 
   display: flex;
   flex-direction: row;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
+
+  --v-button-color: var(--foreground-normal);
+  --v-button-color-hover: var(--foreground-normal);
+  --v-button-color-active: var(--foreground-normal);
+  --v-button-background-color: var(--border-subdued);
+  --v-button-background-color-hover: var(--background-normal-alt);
+  --v-button-background-color-active: var(--background-normal-alt);
+}
+
+.btndiv h3 {
+  /* color: var(--v-button-color); */
+  color: var(--brand);
+  font-weight: bold;
+  font-size: x-large;
+
+  margin-bottom: 0.25rem;
+}
+.btndiv h4 {
+  color: var(--v-button-color);
 }
 
 .btndiv button {
-  background-color: var(--primary);
-  padding: 7px;
-  border-radius: 50px;
-  color: white;
-  text-transform: uppercase;
-  font-size: 14px;
-  font-weight: 600;
-  margin: auto;
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: var(--v-button-width);
+  min-width: var(--v-button-min-width);
+  height: var(--v-button-height);
+  padding: 0 19px;
+  color: var(--v-button-color);
+  font-weight: var(--v-button-font-weight);
+  font-size: var(--v-button-font-size);
+  line-height: var(--v-button-line-height);
+  text-decoration: none;
+  background-color: var(--v-button-background-color);
+  border: var(--border-width) solid var(--v-button-background-color);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: var(--fast) var(--transition);
 }
 
 .chart {
   width: 100%;
+}
+
+.is-loading,
+.error {
+  width: 100%;
+  height: 100%;
+
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  background-color: rgba(255, 255, 255, 0.603);
 }
 </style>

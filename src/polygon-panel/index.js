@@ -1,4 +1,4 @@
-import PanelComponent from './panell.vue';
+import PanelComponent from './panel.vue';
 
 export default {
   id: 'polygon-api',
