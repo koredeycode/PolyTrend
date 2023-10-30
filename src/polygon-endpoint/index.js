@@ -1,6 +1,5 @@
 import { home, status, polygon } from './controllers';
 
-console.log('api running');
 
 export default {
   id: 'polygon-endpoint',
