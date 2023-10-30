@@ -14,8 +14,6 @@ PolyTrend leverages the Polygon API to provide financial market data and insight
 
 ## Set Up Instructions
 
-{ Include any instructions required to set up this submission - including any registrations for third-party services. }
-
 Add the enviroment variable `POLYGON_API_KEY` to your directus `docker-compose.yml` file.
 
 You can obtain a free API key from [Polygon](https://polygon.io/)
